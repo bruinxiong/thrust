@@ -27,30 +27,6 @@ namespace detail
 {
 namespace generic
 {
-namespace sequence_detail
-{
-
-
-template<typename T>
-struct sequence_functor
-{
-  T init, step;
-
-  __host__ __device__
-  sequence_functor(T init, T step)
-    : init(init), step(step)
-  {}
-
-  template<typename Index>
-  __host__ __device__
-  T operator()(Index i) const
-  {
-    return static_cast<T>(init + step * i);
-  }
-};
-
-
-} // end sequence_detail
 
 
 template<typename DerivedPolicy, typename ForwardIterator>
@@ -75,6 +51,22 @@ __host__ __device__
   thrust::sequence(exec, first, last, init, T(1));
 } // end sequence()
 
+namespace detail
+{
+template <typename T>
+struct compute_sequence_value
+{
+  T init;
+  T step;
+
+  __thrust_exec_check_disable__
+  __host__ __device__
+  T operator()(std::size_t i) const
+  {
+    return init + step * static_cast<T>(i);
+  }
+};
+}
 
 template<typename DerivedPolicy, typename ForwardIterator, typename T>
 __host__ __device__
@@ -84,8 +76,12 @@ __host__ __device__
                 T init,
                 T step)
 {
-  // XXX TODO use a placeholder expression here
-  thrust::tabulate(exec, first, last, sequence_detail::sequence_functor<T>(init, step));
+
+  thrust::tabulate(exec,
+                   first,
+                   last,
+                   detail::compute_sequence_value<T>{std::move(init),
+                                                     std::move(step)});
 } // end sequence()
 
 

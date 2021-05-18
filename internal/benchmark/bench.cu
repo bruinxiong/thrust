@@ -4,6 +4,14 @@
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
 #include <thrust/scan.h>
+#include <thrust/detail/config.h>
+
+#if THRUST_CPP_DIALECT >= 2011
+#include <thrust/random.h>
+#include <thrust/shuffle.h>
+
+#include <random>
+#endif
 
 #include <algorithm>
 #include <numeric>
@@ -42,7 +50,7 @@
 
 // We don't use THRUST_NOEXCEPT because it's new, and we want this benchmark to
 // be backwards-compatible to older versions of Thrust.
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
   #define NOEXCEPT noexcept
 #else
   #define NOEXCEPT throw()
@@ -691,6 +699,21 @@ struct copy_trial_base : trial_base<TrialKind>
   }
 };
 
+#if THRUST_CPP_DIALECT >= 2011
+template <typename Container, typename TrialKind = regular_trial>
+struct shuffle_trial_base : trial_base<TrialKind>
+{
+  Container input;
+
+  void setup(uint64_t elements)
+  {
+    input.resize(elements);
+
+    randomize(input);
+  }
+};
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
@@ -886,6 +909,37 @@ struct copy_tester
   #endif
 };
 
+#if THRUST_CPP_DIALECT >= 2011
+template <typename T>
+struct shuffle_tester
+{
+  static char const* test_name() { return "shuffle"; }
+
+  struct std_trial : shuffle_trial_base<std::vector<T>, baseline_trial>
+  {
+    std::default_random_engine g;
+    void operator()()
+    {
+      std::shuffle(this->input.begin(), this->input.end(), this->g);
+    }
+  };
+
+  struct thrust_trial : shuffle_trial_base<thrust::device_vector<T> >
+  {
+    thrust::default_random_engine g;
+    void operator()()
+    {
+      thrust::shuffle(this->input.begin(), this->input.end(), this->g);
+      #if THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
+        cudaError_t err = cudaDeviceSynchronize();
+        if (err != cudaSuccess)
+          throw thrust::error_code(err, thrust::cuda_category());
+      #endif
+    }
+  };
+};
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 
 template <
@@ -937,6 +991,16 @@ void run_core_primitives_experiments_for_type()
     , BaselineTrials
     , RegularTrials
   >::run_experiment();
+
+#if THRUST_CPP_DIALECT >= 2011
+  experiment_driver<
+      shuffle_tester
+    , ElementMetaType
+    , Elements / sizeof(typename ElementMetaType::type)
+    , BaselineTrials
+    , RegularTrials
+  >::run_experiment();
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

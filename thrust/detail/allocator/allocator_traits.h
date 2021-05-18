@@ -164,7 +164,7 @@ template<class Alloc, class U, bool = has_rebind<Alloc, U>::value>
     typedef typename Alloc::template rebind<U>::other type;
 };
 
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
 template<template<typename, typename...> class Alloc,
          typename T, typename... Args, typename U>
   struct rebind_alloc<Alloc<T, Args...>, U, true>
@@ -346,6 +346,10 @@ template<typename Alloc>
     typedef allocator_traits<typename rebind_alloc<U>::other> other;
   };
 #endif
+
+  // Deprecated std::allocator typedefs that we need:
+  typedef typename thrust::detail::pointer_traits<pointer>::reference reference;
+  typedef typename thrust::detail::pointer_traits<const_pointer>::reference const_reference;
 
   inline __host__ __device__
   static pointer allocate(allocator_type &a, size_type n);

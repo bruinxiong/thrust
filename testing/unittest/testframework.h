@@ -1,20 +1,21 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <set>
-#include <map>
+#include <cstdio>
 #include <iostream>
-
-#include <stdio.h>
+#include <map>
+#include <set>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 #include "meta.h"
 #include "util.h"
 
 #include <thrust/limits.h>
 #include <thrust/detail/integer_traits.h>
-#include <thrust/memory/detail/device_system_resource.h>
-#include <thrust/memory/detail/host_system_resource.h>
+#include <thrust/mr/host_memory_resource.h>
+#include <thrust/mr/device_memory_resource.h>
+#include <thrust/mr/universal_memory_resource.h>
 #include <thrust/mr/allocator.h>
 
 // define some common lists of types
@@ -78,10 +79,13 @@ public:
         fill(0);
     }
 
+    // Allow construction from any integral numeric.
+    template <typename T,
+              typename = typename std::enable_if<std::is_integral<T>::value>::type>
     __host__ __device__
-    custom_numeric(int i)
+    custom_numeric(const T& i)
     {
-        fill(i);
+        fill(static_cast<int>(i));
     }
 
     __host__ __device__
@@ -285,10 +289,13 @@ inline std::string base_class_name(const std::string& name)
   // if the name begins with "class ", chop it off
   chop_prefix(result, "class ");
 
-  // chop everything including and after first "<"
-  return result.replace(result.find_first_of("<"),
-                        result.size(),
-                        "");
+  const std::size_t first_lt = result.find_first_of("<");
+
+  if (first_lt < result.size())
+      // chop everything including and after first "<"
+      return result.replace(first_lt, result.size(), "");
+  else
+      return result;
 }
 
 enum TestStatus { Pass = 0, Failure = 1, KnownFailure = 2, Error = 3, UnknownException = 4};
@@ -328,7 +335,7 @@ protected:
   // \param test The UnitTest of interest
   // \param concise Whether or not to suppress output
   // \return true if all is well; false if the tests must be immediately aborted
-  virtual bool post_test_sanity_check(const UnitTest &test, bool concise);
+  virtual bool post_test_smoke_check(const UnitTest &test, bool concise);
 
 public:
   inline virtual ~UnitTestDriver() {};
@@ -356,7 +363,7 @@ class NAME##UnitTest : public UnitTest {                         \
     public:                                                      \
     NAME##UnitTest() : UnitTest(#NAME) {}                        \
     void run(){                                                  \
-            TEST();                                              \
+        TEST();                                                  \
     }                                                            \
 };                                                               \
 NAME##UnitTest NAME##Instance
@@ -385,15 +392,16 @@ void VTEST##Device(void) {                                      \
     VTEST< thrust::device_vector<int,                           \
         thrust::mr::stateless_resource_allocator<int,           \
             thrust::device_memory_resource> > >();              \
-    VTEST< thrust::device_vector<int,                           \
-        thrust::mr::stateless_resource_allocator<int,           \
-            thrust::universal_memory_resource> > >();           \
+}                                                               \
+void VTEST##Universal(void) {                                   \
+    VTEST< thrust::universal_vector<int> >();                   \
     VTEST< thrust::device_vector<int,                           \
         thrust::mr::stateless_resource_allocator<int,           \
             thrust::universal_host_pinned_memory_resource> > >();\
 }                                                               \
 DECLARE_UNITTEST(VTEST##Host);                                  \
-DECLARE_UNITTEST(VTEST##Device);
+DECLARE_UNITTEST(VTEST##Device);                                \
+DECLARE_UNITTEST(VTEST##Universal);
 
 // Same as above, but only for integral types
 #define DECLARE_INTEGRAL_VECTOR_UNITTEST(VTEST)                 \
@@ -407,8 +415,15 @@ void VTEST##Device(void) {                                      \
     VTEST< thrust::device_vector<short> >();                    \
     VTEST< thrust::device_vector<int> >();                      \
 }                                                               \
+void VTEST##Universal(void) {                                   \
+    VTEST< thrust::universal_vector<int> >();                   \
+    VTEST< thrust::device_vector<int,                           \
+        thrust::mr::stateless_resource_allocator<int,           \
+            thrust::universal_host_pinned_memory_resource> > >();\
+}                                                               \
 DECLARE_UNITTEST(VTEST##Host);                                  \
-DECLARE_UNITTEST(VTEST##Device);
+DECLARE_UNITTEST(VTEST##Device);                                \
+DECLARE_UNITTEST(VTEST##Universal);
 
 // Macro to create instances of a test for several data types.
 #define DECLARE_GENERIC_UNITTEST(TEST)                           \
@@ -424,6 +439,22 @@ class TEST##UnitTest : public UnitTest {                         \
         TEST<int>();                                             \
         TEST<unsigned int>();                                    \
         TEST<float>();                                           \
+    }                                                            \
+};                                                               \
+TEST##UnitTest TEST##Instance
+
+// Macro to create instances of a test for several array sizes.
+#define DECLARE_SIZED_UNITTEST(TEST)                             \
+class TEST##UnitTest : public UnitTest {                         \
+    public:                                                      \
+    TEST##UnitTest() : UnitTest(#TEST) {}                        \
+    void run()                                                   \
+    {                                                            \
+        std::vector<size_t> sizes = get_test_sizes();            \
+        for(size_t i = 0; i != sizes.size(); ++i)                \
+        {                                                        \
+            TEST(sizes[i]);                                      \
+        }                                                        \
     }                                                            \
 };                                                               \
 TEST##UnitTest TEST##Instance
@@ -524,7 +555,7 @@ template<template <typename> class TestName, typename TypeList>
     {
         std::vector<size_t> sizes = get_test_sizes();
         for(size_t i = 0; i != sizes.size(); ++i)
-        {                                                 
+        {
             // get the first type in the list
             typedef typename unittest::get_type<TypeList,0>::type first_type;
 
@@ -532,7 +563,7 @@ template<template <typename> class TestName, typename TypeList>
 
             // loop over the types
             loop(sizes[i]);
-        }                                                 
+        }
     }
 }; // end VariableUnitTest
 
@@ -544,7 +575,7 @@ template<template <typename> class TestName,
     : public UnitTest
 {
   VectorUnitTest()
-    : UnitTest((base_class_name(unittest::type_name<TestName< Vector<int, Alloc<int> > > >()) + "<" + 
+    : UnitTest((base_class_name(unittest::type_name<TestName< Vector<int, Alloc<int> > > >()) + "<" +
                 base_class_name(unittest::type_name<Vector<int, Alloc<int> > >()) + ">").c_str())
   { }
 

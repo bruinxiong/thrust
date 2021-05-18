@@ -40,7 +40,8 @@
 #include <thrust/detail/temporary_array.h>
 #include <thrust/type_traits/is_trivially_relocatable.h>
 
-THRUST_BEGIN_NS
+namespace thrust
+{
 namespace cuda_cub {
 
 namespace __copy {
@@ -99,12 +100,13 @@ namespace __copy {
 
   {
     typedef typename iterator_traits<InputIt>::value_type InputTy;
-
-    trivial_device_copy(derived_cast(sys1),
-                        derived_cast(sys2),
-                        reinterpret_cast<InputTy*>(thrust::raw_pointer_cast(&*result)),
-                        reinterpret_cast<InputTy const*>(thrust::raw_pointer_cast(&*begin)),
-                        n);
+    if (n > 0) {
+      trivial_device_copy(derived_cast(sys1),
+                          derived_cast(sys2),
+                          reinterpret_cast<InputTy*>(thrust::raw_pointer_cast(&*result)),
+                          reinterpret_cast<InputTy const*>(thrust::raw_pointer_cast(&*begin)),
+                          n);
+    }
 
     return result + n;
   }
@@ -238,4 +240,4 @@ namespace __copy {
 }    // namespace __copy
 
 } // namespace cuda_cub
-THRUST_END_NS
+} // end namespace thrust

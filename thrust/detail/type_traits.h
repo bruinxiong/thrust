@@ -49,21 +49,18 @@ namespace detail
      // to the C++14 operator(), but we'd like standard traits to interoperate
      // with our version when tag dispatching.
      #if THRUST_CPP_DIALECT >= 2011
-     constexpr integral_constant() = default;
+     integral_constant() = default;
 
-     constexpr integral_constant(integral_constant const&) = default;
+     integral_constant(integral_constant const&) = default;
 
-     #if THRUST_CPP_DIALECT >= 2014
-     constexpr // In C++11, constexpr makes member functions const.
-     #endif
      integral_constant& operator=(integral_constant const&) = default;
 
      constexpr __host__ __device__
-     integral_constant(std::integral_constant<T, v>) {}
+     integral_constant(std::integral_constant<T, v>) noexcept {}
      #endif
 
-     THRUST_CONSTEXPR __host__ __device__ operator value_type() const THRUST_NOEXCEPT { return value; }
-     THRUST_CONSTEXPR __host__ __device__ value_type operator()() const THRUST_NOEXCEPT { return value; }
+     constexpr __host__ __device__ operator value_type() const noexcept { return value; }
+     constexpr __host__ __device__ value_type operator()() const noexcept { return value; }
    };
  
  /// typedef for true_type
@@ -134,7 +131,7 @@ template<typename T> struct is_pod
        || __is_pod(T)
 #elif THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_GCC
 // only use the intrinsic for >= 4.3
-#if (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 3)
+#if (__GNUC__ * 100 + __GNUC_MINOR__ >= 403)
        || __is_pod(T)
 #endif // GCC VERSION
 #endif // THRUST_HOST_COMPILER
@@ -394,22 +391,44 @@ template<typename T1, typename T2>
 
 
 // mpl stuff
+template<typename... Conditions>
+  struct or_;
 
-template <typename Condition1,               typename Condition2,              typename Condition3 = false_type,
-          typename Condition4  = false_type, typename Condition5 = false_type, typename Condition6 = false_type,
-          typename Condition7  = false_type, typename Condition8 = false_type, typename Condition9 = false_type,
-          typename Condition10 = false_type>
-  struct or_
+template <>
+  struct or_<>
     : public integral_constant<
         bool,
-        Condition1::value || Condition2::value || Condition3::value || Condition4::value || Condition5::value || Condition6::value || Condition7::value || Condition8::value || Condition9::value || Condition10::value
+        false_type::value  // identity for or_
       >
 {
 }; // end or_
 
-template <typename Condition1, typename Condition2, typename Condition3 = true_type>
-  struct and_
-    : public integral_constant<bool, Condition1::value && Condition2::value && Condition3::value>
+template <typename Condition, typename... Conditions>
+  struct or_<Condition, Conditions...>
+    : public integral_constant<
+        bool,
+        Condition::value || or_<Conditions...>::value
+      >
+{
+}; // end or_
+
+template <typename... Conditions>
+  struct and_;
+
+template<>
+  struct and_<>
+    : public integral_constant<
+        bool,
+        true_type::value // identity for and_
+      >
+{
+}; // end and_
+
+template <typename Condition, typename... Conditions>
+  struct and_<Condition, Conditions...>
+    : public integral_constant<
+        bool,
+        Condition::value && and_<Conditions...>::value>
 {
 }; // end and_
 

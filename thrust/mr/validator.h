@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include "detail/config.h"
-#include "memory_resource.h"
+#include <thrust/detail/config/memory_resource.h>
+#include <thrust/mr/memory_resource.h>
 
 namespace thrust
 {
@@ -27,7 +27,7 @@ namespace mr
 template<typename MR>
 struct validator
 {
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
   static_assert(
     std::is_base_of<memory_resource<typename MR::pointer>, MR>::value,
     "a type used as a memory resource must derive from memory_resource"

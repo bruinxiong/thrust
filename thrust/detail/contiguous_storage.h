@@ -19,6 +19,7 @@
 #include <thrust/iterator/detail/normal_iterator.h>
 #include <thrust/detail/execution_policy.h>
 #include <thrust/detail/allocator/allocator_traits.h>
+#include <thrust/detail/config.h>
 
 namespace thrust
 {
@@ -42,14 +43,8 @@ template<typename T, typename Alloc>
     typedef typename alloc_traits::const_pointer       const_pointer;
     typedef typename alloc_traits::size_type           size_type;
     typedef typename alloc_traits::difference_type     difference_type;
-
-    // XXX we should bring reference & const_reference into allocator_traits
-    //     at the moment, it's unclear how -- we have nothing analogous to
-    //     rebind_pointer for references
-    //     we either need to add reference_traits or extend the existing
-    //     pointer_traits to support wrapped references
-    typedef typename Alloc::reference                  reference;
-    typedef typename Alloc::const_reference            const_reference;
+    typedef typename alloc_traits::reference           reference;
+    typedef typename alloc_traits::const_reference     const_reference;
 
     typedef thrust::detail::normal_iterator<pointer>       iterator;
     typedef thrust::detail::normal_iterator<const_pointer> const_iterator;
@@ -167,7 +162,7 @@ template<typename T, typename Alloc>
     __host__ __device__
     void propagate_allocator(const contiguous_storage &other);
 
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
     __host__ __device__
     void propagate_allocator(contiguous_storage &other);
 
@@ -220,7 +215,7 @@ template<typename T, typename Alloc>
     __host__ __device__
     void propagate_allocator_dispatch(false_type, const contiguous_storage &other);
 
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
     __host__ __device__
     void propagate_allocator_dispatch(true_type, contiguous_storage &other);
 

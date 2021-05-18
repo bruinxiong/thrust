@@ -1,6 +1,9 @@
 #include <unittest/unittest.h>
+
+#include <thrust/detail/config.h>
 #include <thrust/sequence.h>
 #include <thrust/device_malloc_allocator.h>
+
 #include <vector>
 #include <list>
 #include <limits>
@@ -52,24 +55,27 @@ DECLARE_VECTOR_UNITTEST(TestVectorFrontBack);
 template <class Vector>
 void TestVectorData(void)
 {
+    typedef typename Vector::pointer PointerT;
+    typedef typename Vector::const_pointer PointerConstT;
+
     Vector v(3);
     v[0] = 0; v[1] = 1; v[2] = 2;
 
     ASSERT_EQUAL(0,          *v.data());
     ASSERT_EQUAL(1,          *(v.data() + 1));
     ASSERT_EQUAL(2,          *(v.data() + 2));
-    ASSERT_EQUAL(&v.front(),  v.data());
-    ASSERT_EQUAL(&*v.begin(), v.data());
-    ASSERT_EQUAL(&v[0],       v.data());
+    ASSERT_EQUAL(PointerT(&v.front()),  v.data());
+    ASSERT_EQUAL(PointerT(&*v.begin()), v.data());
+    ASSERT_EQUAL(PointerT(&v[0]),       v.data());
 
     const Vector &c_v = v;
 
     ASSERT_EQUAL(0,            *c_v.data());
     ASSERT_EQUAL(1,            *(c_v.data() + 1));
     ASSERT_EQUAL(2,            *(c_v.data() + 2));
-    ASSERT_EQUAL(&c_v.front(),  c_v.data());
-    ASSERT_EQUAL(&*c_v.begin(), c_v.data());
-    ASSERT_EQUAL(&c_v[0],       c_v.data());
+    ASSERT_EQUAL(PointerConstT(&c_v.front()),  c_v.data());
+    ASSERT_EQUAL(PointerConstT(&*c_v.begin()), c_v.data());
+    ASSERT_EQUAL(PointerConstT(&c_v[0]),       c_v.data());
 }
 DECLARE_VECTOR_UNITTEST(TestVectorData);
 
@@ -639,6 +645,19 @@ DECLARE_VECTOR_UNITTEST(TestVectorReserving)
 
 
 template <class Vector>
+void TestVectorUninitialisedCopy(void)
+{
+    thrust::device_vector<int> v;
+    std::vector<int> std_vector;
+
+    v = std_vector;
+
+    ASSERT_EQUAL(v.size(), static_cast<size_t>(0));
+}
+DECLARE_VECTOR_UNITTEST(TestVectorUninitialisedCopy);
+
+
+template <class Vector>
 void TestVectorShrinkToFit(void)
 {
     typedef typename Vector::value_type T;
@@ -739,7 +758,7 @@ void TestVectorReversed(void)
 }
 DECLARE_VECTOR_UNITTEST(TestVectorReversed);
 
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
   template <class Vector>
   void TestVectorMove(void)
   {

@@ -2,22 +2,31 @@
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 
+#include <thrust/detail/allocator/allocator_traits.h>
+
 static const size_t num_samples = 10000;
 
 template<typename Vector, typename U> struct rebind_vector;
 
-// TODO: C++11: use rebind from allocator_traits
 template<typename T, typename U, typename Allocator>
   struct rebind_vector<thrust::host_vector<T, Allocator>, U>
 {
-  typedef thrust::host_vector<U,
-    typename Allocator::template rebind<U>::other> type;
+    typedef typename thrust::detail::allocator_traits<Allocator> alloc_traits;
+    typedef typename alloc_traits::template rebind_alloc<U> new_alloc;
+    typedef thrust::host_vector<U, new_alloc> type;
 };
 
 template<typename T, typename U, typename Allocator>
   struct rebind_vector<thrust::device_vector<T, Allocator>, U>
 {
   typedef thrust::device_vector<U,
+    typename Allocator::template rebind<U>::other> type;
+};
+
+template<typename T, typename U, typename Allocator>
+  struct rebind_vector<thrust::universal_vector<T, Allocator>, U>
+{
+  typedef thrust::universal_vector<U,
     typename Allocator::template rebind<U>::other> type;
 };
 

@@ -1,39 +1,25 @@
-# Copyright 1993-2010 NVIDIA Corporation.  All rights reserved.
+# Copyright 2010-2020 NVIDIA Corporation.
 #
-# NOTICE TO USER:
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# This source code is subject to NVIDIA ownership rights under U.S. and
-# international Copyright laws.
+#		http://www.apache.org/licenses/LICENSE-2.0
 #
-# This software and the information contained herein is being provided
-# under the terms and conditions of a Source Code License Agreement.
-#
-# NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOURCE
-# CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR
-# IMPLIED WARRANTY OF ANY KIND.  NVIDIA DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOURCE CODE, INCLUDING ALL IMPLIED WARRANTIES OF
-# MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
-# IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL,
-# OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
-# OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE
-# OR PERFORMANCE OF THIS SOURCE CODE.
-#
-# U.S. Government End Users.   This source code is a "commercial item" as
-# that term is defined at  48 C.F.R. 2.101 (OCT 1995), consisting  of
-# "commercial computer  software"  and "commercial computer software
-# documentation" as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995)
-# and is provided to the U.S. Government only as a commercial end item.
-# Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through
-# 227.7202-4 (JUNE 1995), all U.S. Government End Users acquire the
-# source code with only those rights set forth herein.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # Makefile for building Thrust unit test driver
 
 # Force C++11 mode. NVCC will ignore it if the host compiler doesn't support it.
-export CXX_STD = c++11
+export CXX_STD := c++11
 
-export VERBOSE = 1
+export CCCL_ENABLE_DEPRECATIONS := 1
+
+export VERBOSE := 1
 
 ifndef PROFILE
   ifdef VULCAN_TOOLKIT_BASE
@@ -51,10 +37,6 @@ ifdef VULCAN_TOOLKIT_BASE
   include $(VULCAN_TOOLKIT_BASE)/build/config/DetectOS.mk
 else
   include ../build/config/DetectOS.mk
-endif
-
-ifeq ($(OS),win32)
-  export I_AM_SLOPPY := 1
 endif
 
 TMP_DIR      := built
@@ -129,43 +111,14 @@ else
   include ../build/common.mk
 endif
 
-# Print host compiler version.
-
-VERSION_FLAG :=
-ifeq ($(OS),$(filter $(OS),Linux Darwin))
-  ifdef USEPGCXX        # PGI
-    VERSION_FLAG := -V
-  else
-    ifdef USEXLC        # XLC
-      VERSION_FLAG := -qversion
-    else                # GCC, ICC or Clang AKA the sane ones.
-      VERSION_FLAG := --version
-    endif
-  endif
-else ifeq ($(OS),win32) # MSVC
-  # cl.exe run without any options will print its version info and exit.
-  VERSION_FLAG :=
-endif
-
-CCBIN_ENVIRONMENT :=
-ifeq ($(OS), QNX)
-  # QNX's GCC complains if QNX_HOST and QNX_TARGET aren't defined in the
-  # environment.
-  CCBIN_ENVIRONMENT := QNX_HOST=$(QNX_HOST) QNX_TARGET=$(QNX_TARGET)
-endif
-
-$(info #### CCBIN         : $(CCBIN))
-$(info #### CCBIN VERSION : $(shell $(CCBIN_ENVIRONMENT) $(CCBIN) $(VERSION_FLAG)))
-$(info #### CXX_STD       : $(CXX_STD))
-
 ifeq ($(OS), win32)
-  CREATE_DVS_PACKAGE = $(ZIP) -r built/CUDA-thrust-package.zip bin thrust/internal/test thrust/internal/scripts thrust/internal/benchmark thrust/*.trs $(DVS_COMMON_TEST_PACKAGE_FILES)
+  CREATE_DVS_PACKAGE = $(ZIP) -r built/CUDA-thrust-package.zip bin thrust/internal/test thrust/internal/scripts thrust/internal/benchmark $(DVS_COMMON_TEST_PACKAGE_FILES)
   APPEND_H_DVS_PACKAGE = $(ZIP) -rg built/CUDA-thrust-package.zip thrust -9 -i *.h
   APPEND_INL_DVS_PACKAGE = $(ZIP) -rg built/CUDA-thrust-package.zip thrust -9 -i *.inl
   APPEND_CUH_DVS_PACKAGE = $(ZIP) -rg built/CUDA-thrust-package.zip thrust -9 -i *.cuh
   MAKE_DVS_PACKAGE = $(CREATE_DVS_PACKAGE) && $(APPEND_H_DVS_PACKAGE) && $(APPEND_INL_DVS_PACKAGE) && $(APPEND_CUH_DVS_PACKAGE)
 else
-  CREATE_DVS_PACKAGE = tar -cvh -f built/CUDA-thrust-package.tar bin thrust/internal/test thrust/internal/scripts thrust/internal/benchmark thrust/*.trs $(DVS_COMMON_TEST_PACKAGE_FILES)
+  CREATE_DVS_PACKAGE = tar -cvh -f built/CUDA-thrust-package.tar bin thrust/internal/test thrust/internal/scripts thrust/internal/benchmark $(DVS_COMMON_TEST_PACKAGE_FILES)
   APPEND_H_DVS_PACKAGE = find -L thrust -name "*.h" | xargs tar rvf built/CUDA-thrust-package.tar
   APPEND_INL_DVS_PACKAGE = find -L thrust -name "*.inl" | xargs tar rvf built/CUDA-thrust-package.tar
   APPEND_CUH_DVS_PACKAGE = find -L thrust -name "*.cuh" | xargs tar rvf built/CUDA-thrust-package.tar
@@ -173,10 +126,7 @@ else
   MAKE_DVS_PACKAGE = $(CREATE_DVS_PACKAGE) && $(APPEND_H_DVS_PACKAGE) && $(APPEND_INL_DVS_PACKAGE) && $(APPEND_CUH_DVS_PACKAGE) && $(COMPRESS_DVS_PACKAGE)
 endif
 
-ifeq ($(OS), win32)
-  COPY_CUB_FOR_PACKAGING = mv cub cub-link && cp -r ../cub/cub cub
-  RESTORE_CUB_LINK = rm -rf cub && mv cub-link cub
-endif
+COPY_CUB_FOR_PACKAGING = rm -rf cub && cp -r ../cub/cub cub
 
 DVS_OPTIONS :=
 
@@ -190,17 +140,19 @@ endif
 THRUST_DVS_BUILD = release
 
 pack:
+	$(COPY_CUB_FOR_PACKAGING)
 	cd .. && $(MAKE_DVS_PACKAGE)
 
 dvs:
 	$(COPY_CUB_FOR_PACKAGING)
+# Build the CUDA Runtime in GVS, because GVS has no CUDA Runtime component.
+# This is a temporary workaround until the Tegra team adds a CUDA Runtime
+# component, which they have promised to do.
+ifdef GVS
 	$(MAKE) $(DVS_OPTIONS) -s -C ../cuda $(THRUST_DVS_BUILD)
+endif
 	$(MAKE) $(DVS_OPTIONS) $(THRUST_DVS_BUILD) THRUST_DVS=1
 	cd .. && $(MAKE_DVS_PACKAGE)
-	$(RESTORE_CUB_LINK)
-
-# XXX Deprecated, remove.
-dvs_nightly: dvs
 
 dvs_release:
 	$(MAKE) dvs THRUST_DVS_BUILD=release

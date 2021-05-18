@@ -17,6 +17,7 @@
 #pragma once
 
 #include <thrust/detail/preprocessor.h>
+#include <thrust/detail/integer_traits.h>
 
 /**
  * Dispatch between 32-bit and 64-bit index based versions of the same algorithm
@@ -25,12 +26,12 @@
  * interfaces, that always deduce the size type from the arguments.
  */
 #define THRUST_INDEX_TYPE_DISPATCH(status, call, count, arguments) \
-    if (count <= std::numeric_limits<thrust::detail::int32_t>::max()) { \
-        thrust::detail::int32_t THRUST_PP_CAT2(count, _fixed) = count; \
+    if (count <= thrust::detail::integer_traits<thrust::detail::int32_t>::const_max) { \
+        auto THRUST_PP_CAT2(count, _fixed) = static_cast<thrust::detail::int32_t>(count); \
         status = call arguments; \
     } \
     else { \
-        thrust::detail::int64_t THRUST_PP_CAT2(count, _fixed) = count; \
+        auto THRUST_PP_CAT2(count, _fixed) = static_cast<thrust::detail::int64_t>(count); \
         status = call arguments; \
     }
 
@@ -44,14 +45,14 @@
  * necessary for set algorithms.
  */
 #define THRUST_DOUBLE_INDEX_TYPE_DISPATCH(status, call, count1, count2, arguments) \
-    if (count1 + count2 <= std::numeric_limits<thrust::detail::int32_t>::max()) { \
-        thrust::detail::int32_t THRUST_PP_CAT2(count1, _fixed) = count1; \
-        thrust::detail::int32_t THRUST_PP_CAT2(count2, _fixed) = count2; \
+    if (count1 + count2 <= thrust::detail::integer_traits<thrust::detail::int32_t>::const_max) { \
+        auto THRUST_PP_CAT2(count1, _fixed) = static_cast<thrust::detail::int32_t>(count1); \
+        auto THRUST_PP_CAT2(count2, _fixed) = static_cast<thrust::detail::int32_t>(count2); \
         status = call arguments; \
     } \
     else { \
-        thrust::detail::int64_t THRUST_PP_CAT2(count1, _fixed) = count1; \
-        thrust::detail::int64_t THRUST_PP_CAT2(count2, _fixed) = count2; \
+        auto THRUST_PP_CAT2(count1, _fixed) = static_cast<thrust::detail::int64_t>(count1); \
+        auto THRUST_PP_CAT2(count2, _fixed) = static_cast<thrust::detail::int64_t>(count2); \
         status = call arguments; \
     }
 /**
@@ -66,12 +67,12 @@
  * See reduce_n_impl to see an example of how this is meant to be used.
  */
 #define THRUST_INDEX_TYPE_DISPATCH2(status, call_32, call_64, count, arguments) \
-    if (count <= std::numeric_limits<thrust::detail::int32_t>::max()) { \
-        thrust::detail::int32_t THRUST_PP_CAT2(count, _fixed) = count; \
+    if (count <= thrust::detail::integer_traits<thrust::detail::int32_t>::const_max) { \
+        auto THRUST_PP_CAT2(count, _fixed) = static_cast<thrust::detail::int32_t>(count); \
         status = call_32 arguments; \
     } \
     else { \
-        thrust::detail::int64_t THRUST_PP_CAT2(count, _fixed) = count; \
+        auto THRUST_PP_CAT2(count, _fixed) = static_cast<thrust::detail::int64_t>(count); \
         status = call_64 arguments; \
     }
 

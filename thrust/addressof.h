@@ -8,10 +8,11 @@
 #include <thrust/detail/config.h>
 
 #if THRUST_CPP_DIALECT >= 2011
-#  include <memory>
+#  include <thrust/detail/memory_wrapper.h>
 #endif
 
-THRUST_BEGIN_NS
+namespace thrust
+{
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -28,5 +29,5 @@ T* addressof(T& arg)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-THRUST_END_NS
+} // end namespace thrust
 

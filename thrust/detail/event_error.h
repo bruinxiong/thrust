@@ -20,17 +20,17 @@
 #pragma once
 
 #include <thrust/detail/config.h>
-#include <thrust/detail/cpp11_required.h>
-#include <thrust/detail/modern_gcc_required.h>
+#include <thrust/detail/cpp14_required.h>
 
-#if THRUST_CPP_DIALECT >= 2011 && !defined(THRUST_LEGACY_GCC)
+#if THRUST_CPP_DIALECT >= 2014
 
 #include <thrust/detail/type_traits.h>
 #include <thrust/system/error_code.h>
 
 #include <stdexcept>
 
-THRUST_BEGIN_NS
+namespace thrust
+{
 
 enum class event_errc
 {
@@ -64,7 +64,7 @@ struct event_error_category : error_category
         return "no_state: an operation that requires an event or future to have "
                "a stream or content has been performed on a event or future "
                "without either, e.g. a moved-from or default constructed event "
-               "or future (anevent or future may have been consumed more than "
+               "or future (an event or future may have been consumed more than "
                "once)";
       }
       case event_errc::no_content:
@@ -93,13 +93,13 @@ struct event_error_category : error_category
 
     return system_category().default_error_condition(ev);
   }
-}; 
+};
 
 /// Obtains a reference to the static error category object for the errors
 /// related to futures and promises. The object is required to override the
-/// virtual function error_category::name() to return a pointer to the string 
-/// "event". It is used to identify error codes provided in the 
-/// exceptions of type event_error. 
+/// virtual function error_category::name() to return a pointer to the string
+/// "event". It is used to identify error codes provided in the
+/// exceptions of type event_error.
 inline error_category const& event_category()
 {
   static const event_error_category result;
@@ -122,7 +122,7 @@ inline error_code make_error_code(event_errc e)
 inline error_condition make_error_condition(event_errc e)
 {
   return error_condition(static_cast<int>(e), event_category());
-} 
+}
 
 struct event_error : std::logic_error
 {
@@ -159,7 +159,7 @@ inline bool operator<(event_error const& lhs, event_error const& rhs) noexcept
   return lhs.code() < rhs.code();
 }
 
-THRUST_END_NS
+} // end namespace thrust
 
-#endif
+#endif // C++14
 

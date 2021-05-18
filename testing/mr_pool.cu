@@ -1,8 +1,10 @@
 #include <unittest/unittest.h>
+
+#include <thrust/detail/config.h>
 #include <thrust/mr/pool.h>
 #include <thrust/mr/new.h>
 
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
 #include <thrust/mr/sync_pool.h>
 #endif
 
@@ -106,7 +108,7 @@ struct tracked_pointer : thrust::iterator_facade<
     }
 };
 
-class tracked_resource THRUST_FINAL : public thrust::mr::memory_resource<tracked_pointer<void> >
+class tracked_resource final : public thrust::mr::memory_resource<tracked_pointer<void> >
 {
 public:
     tracked_resource() : id_to_allocate(0), id_to_deallocate(0)
@@ -119,7 +121,7 @@ public:
         ASSERT_EQUAL(id_to_deallocate, 0u);
     }
 
-    virtual tracked_pointer<void> do_allocate(std::size_t n, std::size_t alignment = THRUST_MR_DEFAULT_ALIGNMENT) THRUST_OVERRIDE
+    virtual tracked_pointer<void> do_allocate(std::size_t n, std::size_t alignment = THRUST_MR_DEFAULT_ALIGNMENT) override
     {
         ASSERT_EQUAL(static_cast<bool>(id_to_allocate), true);
 
@@ -134,7 +136,7 @@ public:
         return ret;
     }
 
-    virtual void do_deallocate(tracked_pointer<void> p, std::size_t n, std::size_t alignment = THRUST_MR_DEFAULT_ALIGNMENT) THRUST_OVERRIDE
+    virtual void do_deallocate(tracked_pointer<void> p, std::size_t n, std::size_t alignment = THRUST_MR_DEFAULT_ALIGNMENT) override
     {
         ASSERT_EQUAL(p.size, n);
         ASSERT_EQUAL(p.alignment, alignment);
@@ -241,7 +243,7 @@ void TestUnsynchronizedPool()
 }
 DECLARE_UNITTEST(TestUnsynchronizedPool);
 
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
 void TestSynchronizedPool()
 {
     TestPool<thrust::mr::synchronized_pool_resource>();
@@ -324,7 +326,7 @@ void TestUnsynchronizedPoolCachingOversized()
 }
 DECLARE_UNITTEST(TestUnsynchronizedPoolCachingOversized);
 
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
 void TestSynchronizedPoolCachingOversized()
 {
     TestPoolCachingOversized<thrust::mr::synchronized_pool_resource>();
@@ -348,7 +350,7 @@ void TestUnsynchronizedGlobalPool()
 }
 DECLARE_UNITTEST(TestUnsynchronizedGlobalPool);
 
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
 void TestSynchronizedGlobalPool()
 {
     TestGlobalPool<thrust::mr::synchronized_pool_resource>();

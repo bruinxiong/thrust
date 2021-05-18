@@ -3,16 +3,18 @@
 #include <thrust/transform.h>
 #include <thrust/iterator/constant_iterator.h>
 
+#include <thrust/detail/allocator/allocator_traits.h>
+
 static const size_t num_samples = 10000;
 
 template<typename Vector, typename U> struct rebind_vector;
 
-// TODO: C++11: use rebind from allocator_traits
 template<typename T, typename U, typename Allocator>
   struct rebind_vector<thrust::host_vector<T, Allocator>, U>
 {
-  typedef thrust::host_vector<U,
-    typename Allocator::template rebind<U>::other> type;
+  typedef typename thrust::detail::allocator_traits<Allocator> alloc_traits;
+  typedef typename alloc_traits::template rebind_alloc<U> new_alloc;
+  typedef thrust::host_vector<U, new_alloc> type;
 };
 
 template<typename T, typename U, typename Allocator>
@@ -22,17 +24,24 @@ template<typename T, typename U, typename Allocator>
     typename Allocator::template rebind<U>::other> type;
 };
 
+template<typename T, typename U, typename Allocator>
+  struct rebind_vector<thrust::universal_vector<T, Allocator>, U>
+{
+  typedef thrust::universal_vector<U,
+    typename Allocator::template rebind<U>::other> type;
+};
+
 #define BINARY_FUNCTIONAL_PLACEHOLDERS_TEST(name, op, reference_functor, type_list) \
 template<typename Vector> \
   struct TestFunctionalPlaceholders##name \
 { \
   void operator()(const size_t) \
   { \
-    static const size_t num_samples = 10000; \
-    const size_t zero = 0; \
+    constexpr size_t NUM_SAMPLES = 10000; \
+    constexpr size_t ZERO = 0; \
     typedef typename Vector::value_type T; \
-    Vector lhs = unittest::random_samples<T>(num_samples); \
-    Vector rhs = unittest::random_samples<T>(num_samples); \
+    Vector lhs = unittest::random_samples<T>(NUM_SAMPLES); \
+    Vector rhs = unittest::random_samples<T>(NUM_SAMPLES); \
     thrust::replace(rhs.begin(), rhs.end(), T(0), T(1)); \
 \
     Vector reference(lhs.size()); \
@@ -47,7 +56,7 @@ template<typename Vector> \
     thrust::transform(lhs.begin(), lhs.end(), result.begin(), _1 op T(1)); \
     ASSERT_ALMOST_EQUAL(reference, result); \
 \
-    thrust::transform(thrust::make_constant_iterator<T>(1,zero), thrust::make_constant_iterator<T>(1,num_samples), rhs.begin(), reference.begin(), reference_functor<T>()); \
+    thrust::transform(thrust::make_constant_iterator<T>(1,ZERO), thrust::make_constant_iterator<T>(1,NUM_SAMPLES), rhs.begin(), reference.begin(), reference_functor<T>()); \
     thrust::transform(rhs.begin(), rhs.end(), result.begin(), T(1) op _1); \
     ASSERT_ALMOST_EQUAL(reference, result); \
   } \

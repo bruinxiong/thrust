@@ -37,6 +37,8 @@
 // XXX we should move the definition of THRUST_DEPRECATED out of this logic
 #if   defined(_MSC_VER)
 #define THRUST_HOST_COMPILER THRUST_HOST_COMPILER_MSVC
+#define THRUST_MSVC_VERSION _MSC_VER
+#define THRUST_MSVC_VERSION_FULL _MSC_FULL_VER
 #elif defined(__clang__)
 #define THRUST_HOST_COMPILER THRUST_HOST_COMPILER_CLANG
 #define THRUST_CLANG_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__)
@@ -53,7 +55,7 @@
 #endif // THRUST_HOST_COMPILER
 
 // figure out which device compiler we're using
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) || defined(__NVCOMPILER_CUDA__)
 #define THRUST_DEVICE_COMPILER THRUST_DEVICE_COMPILER_NVCC
 #elif THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_MSVC
 #define THRUST_DEVICE_COMPILER THRUST_DEVICE_COMPILER_MSVC
@@ -71,7 +73,7 @@
 #endif
 
 // is the device compiler capable of compiling omp?
-#ifdef _OPENMP
+#if defined(_OPENMP) || defined(_NVHPC_STDPAR_OPENMP)
 #define THRUST_DEVICE_COMPILER_IS_OMP_CAPABLE THRUST_TRUE
 #else
 #define THRUST_DEVICE_COMPILER_IS_OMP_CAPABLE THRUST_FALSE
@@ -181,14 +183,4 @@
   THRUST_DISABLE_CLANG_AND_GCC_INITIALIZER_REORDERING_WARNING_END             \
   /**/
 
-// TODO we should move the definition of THRUST_DEPRECATED out of this logic
-#if   THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_MSVC
-  #define THRUST_DEPRECATED __declspec(deprecated)
-#elif THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_CLANG
-  #define THRUST_DEPRECATED __attribute__((deprecated))
-#elif THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_GCC
-  #define THRUST_DEPRECATED __attribute__((deprecated))
-#else
-  #define THRUST_DEPRECATED
-#endif
 

@@ -26,6 +26,7 @@
 #include <thrust/iterator/reverse_iterator.h>
 #include <thrust/iterator/iterator_traits.h>
 #include <thrust/detail/type_traits.h>
+#include <thrust/detail/config.h>
 #include <thrust/detail/contiguous_storage.h>
 #include <vector>
 
@@ -106,7 +107,7 @@ template<typename T, typename Alloc>
      */
     vector_base(const vector_base &v, const Alloc &alloc);
 
-  #if __cplusplus >= 201103L
+  #if THRUST_CPP_DIALECT >= 2011
     /*! Move constructor moves from another vector_base.
      *  \param v The vector_base to move.
      */
@@ -123,7 +124,7 @@ template<typename T, typename Alloc>
      */
     vector_base &operator=(const vector_base &v);
 
-  #if __cplusplus >= 201103L
+  #if THRUST_CPP_DIALECT >= 2011
     /*! Move assign operator moves from another vector_base.
      *  \param v The vector_base to move.
      */
@@ -421,8 +422,8 @@ template<typename T, typename Alloc>
      *  \param first The beginning of the range to copy.
      *  \param last  The end of the range to copy.
      *
-     *  \tparam InputIterator is a model of <a href="http://www.sgi.com/tech/stl/InputIterator.html>Input Iterator</a>,
-     *                        and \p InputIterator's \c value_type is a model of <a href="http://www.sgi.com/tech/stl/Assignable.html">Assignable</a>.
+     *  \tparam InputIterator is a model of <a href="https://en.cppreference.com/w/cpp/iterator/input_iterator>Input Iterator</a>,
+     *                        and \p InputIterator's \c value_type is a model of <a href="https://en.cppreference.com/w/cpp/named_req/CopyAssignable">Assignable</a>.
      */
     template<typename InputIterator>
     void insert(iterator position, InputIterator first, InputIterator last);
@@ -438,7 +439,7 @@ template<typename T, typename Alloc>
      *  \param first The beginning of the range to copy.
      *  \param last  The end of the range to copy.
      *
-     *  \tparam InputIterator is a model of <a href="http://www.sgi.com/tech/stl/InputIterator">Input Iterator</a>.
+     *  \tparam InputIterator is a model of <a href="https://en.cppreference.com/w/cpp/named_req/InputIterator">Input Iterator</a>.
      */
     template<typename InputIterator>
     void assign(InputIterator first, InputIterator last);

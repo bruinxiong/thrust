@@ -37,7 +37,10 @@
 #include <thrust/pair.h>
 #include <thrust/distance.h>
 
-THRUST_BEGIN_NS
+#include <cub/util_math.cuh>
+
+namespace thrust
+{
 namespace cuda_cub {
 
 namespace __extrema {
@@ -127,8 +130,8 @@ namespace __extrema {
       pair_type const &lhs_min = get<0>(lhs);
       pair_type const &rhs_max = get<1>(rhs);
       pair_type const &lhs_max = get<1>(lhs);
-      return make_tuple(arg_min_t(predicate)(lhs_min, rhs_min),
-                        arg_max_t(predicate)(lhs_max, rhs_max));
+      return thrust::make_tuple(arg_min_t(predicate)(lhs_min, rhs_min),
+                                arg_max_t(predicate)(lhs_max, rhs_max));
     }
 
     struct duplicate_tuple
@@ -258,8 +261,7 @@ namespace __extrema {
       else if (reduce_plan.grid_mapping == cub::GRID_MAPPING_DYNAMIC)
       {
         // Work is distributed dynamically
-        size_t num_tiles = (num_items + reduce_plan.items_per_tile - 1) /
-          reduce_plan.items_per_tile;
+        size_t num_tiles = cub::DivideAndRoundUp(num_items, reduce_plan.items_per_tile);
 
         // if not enough to fill the device with threadblocks
         // then fill the device with threadblocks
@@ -385,7 +387,7 @@ namespace __extrema {
     typedef tuple<ItemsIt, counting_iterator_t<IndexType> > iterator_tuple;
     typedef zip_iterator<iterator_tuple> zip_iterator;
 
-    iterator_tuple iter_tuple = make_tuple(first, counting_iterator_t<IndexType>(0));
+    iterator_tuple iter_tuple = thrust::make_tuple(first, counting_iterator_t<IndexType>(0));
 
 
     typedef ArgFunctor<InputType, IndexType, BinaryPred> arg_min_t;
@@ -518,7 +520,7 @@ minmax_element(execution_policy<Derived> &policy,
     typedef tuple<ItemsIt, counting_iterator_t<IndexType> > iterator_tuple;
     typedef zip_iterator<iterator_tuple> zip_iterator;
 
-    iterator_tuple iter_tuple = make_tuple(first, counting_iterator_t<IndexType>(0));
+    iterator_tuple iter_tuple = thrust::make_tuple(first, counting_iterator_t<IndexType>(0));
 
 
     typedef __extrema::arg_minmax_f<InputType, IndexType, BinaryPred> arg_minmax_t;
@@ -563,5 +565,5 @@ minmax_element(execution_policy<Derived> &policy,
 
 
 } // namespace cuda_cub
-THRUST_END_NS
+} // end namespace thrust
 #endif

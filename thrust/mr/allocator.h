@@ -22,9 +22,10 @@
 
 #include <limits>
 
+#include <thrust/detail/config/exec_check_disable.h>
+#include <thrust/detail/config/memory_resource.h>
 #include <thrust/detail/type_traits/pointer_traits.h>
 
-#include <thrust/mr/detail/config.h>
 #include <thrust/mr/validator.h>
 #include <thrust/mr/polymorphic_adaptor.h>
 
@@ -93,6 +94,7 @@ public:
      *
      *  \returns the maximum value of \p std::size_t, divided by the size of \p T.
      */
+    __thrust_exec_check_disable__
     __host__ __device__
     size_type max_size() const
     {
@@ -155,7 +157,7 @@ private:
 /*! Compares the allocators for equality by comparing the underlying memory resources. */
 template<typename T, typename MR>
 __host__ __device__
-bool operator==(const allocator<T, MR> & lhs, const allocator<T, MR> & rhs) THRUST_NOEXCEPT
+bool operator==(const allocator<T, MR> & lhs, const allocator<T, MR> & rhs) noexcept
 {
     return *lhs.resource() == *rhs.resource();
 }
@@ -163,17 +165,17 @@ bool operator==(const allocator<T, MR> & lhs, const allocator<T, MR> & rhs) THRU
 /*! Compares the allocators for inequality by comparing the underlying memory resources. */
 template<typename T, typename MR>
 __host__ __device__
-bool operator!=(const allocator<T, MR> & lhs, const allocator<T, MR> & rhs) THRUST_NOEXCEPT
+bool operator!=(const allocator<T, MR> & lhs, const allocator<T, MR> & rhs) noexcept
 {
     return !(lhs == rhs);
 }
 
-#if __cplusplus >= 201103L
+#if THRUST_CPP_DIALECT >= 2011
 
 template<typename T, typename Pointer>
 using polymorphic_allocator = allocator<T, polymorphic_adaptor_resource<Pointer> >;
 
-#else
+#else // C++11
 
 template<typename T, typename Pointer>
 class polymorphic_allocator : public allocator<T, polymorphic_adaptor_resource<Pointer> >
@@ -188,7 +190,7 @@ public:
     }
 };
 
-#endif
+#endif // C++11
 
 /*! A helper allocator class that uses global instances of a given upstream memory resource. Requires the memory resource
  *      to be default constructible.

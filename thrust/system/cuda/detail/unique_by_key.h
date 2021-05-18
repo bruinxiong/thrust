@@ -44,7 +44,10 @@
 #include <thrust/distance.h>
 #include <thrust/detail/alignment.h>
 
-THRUST_BEGIN_NS
+#include <cub/util_math.cuh>
+
+namespace thrust
+{
 
 template <typename DerivedPolicy,
           typename ForwardIterator1,
@@ -228,12 +231,12 @@ namespace __unique_by_key {
 
       union TempStorage
       {
-        struct
+        struct ScanStorage
         {
           typename BlockScan::TempStorage              scan;
           typename TilePrefixCallback::TempStorage     prefix;
           typename BlockDiscontinuityKeys::TempStorage discontinuity;
-        };
+        } scan_storage;
 
         typename BlockLoadKeys::TempStorage   load_keys;
         typename BlockLoadValues::TempStorage load_values;
@@ -391,13 +394,13 @@ namespace __unique_by_key {
 
         if (IS_FIRST_TILE)
         {
-          BlockDiscontinuityKeys(temp_storage.discontinuity)
+          BlockDiscontinuityKeys(temp_storage.scan_storage.discontinuity)
               .FlagHeads(selection_flags, keys, predicate);
         }
         else
         {
           key_type tile_predecessor = keys_in[tile_base - 1];
-          BlockDiscontinuityKeys(temp_storage.discontinuity)
+          BlockDiscontinuityKeys(temp_storage.scan_storage.discontinuity)
               .FlagHeads(selection_flags, keys, predicate, tile_predecessor);
         }
 #pragma unroll
@@ -416,7 +419,7 @@ namespace __unique_by_key {
         Size num_selections_prefix = 0;
         if (IS_FIRST_TILE)
         {
-          BlockScan(temp_storage.scan)
+          BlockScan(temp_storage.scan_storage.scan)
               .ExclusiveSum(selection_flags,
                             selection_idx,
                             num_tile_selections);
@@ -439,10 +442,10 @@ namespace __unique_by_key {
         else
         {
           TilePrefixCallback prefix_cb(tile_state,
-                                       temp_storage.prefix,
+                                       temp_storage.scan_storage.prefix,
                                        cub::Sum(),
                                        tile_idx);
-          BlockScan(temp_storage.scan)
+          BlockScan(temp_storage.scan_storage.scan)
               .ExclusiveSum(selection_flags,
                             selection_idx,
                             prefix_cb);
@@ -659,7 +662,7 @@ namespace __unique_by_key {
 
 
     int tile_size = unique_plan.items_per_tile;
-    size_t num_tiles = (num_items + tile_size - 1) / tile_size;
+    size_t num_tiles = cub::DivideAndRoundUp(num_items, tile_size);
 
     size_t vshmem_size = core::vshmem_size(unique_plan.shared_memory_size,
                                            num_tiles);
@@ -925,7 +928,7 @@ unique_by_key(execution_policy<Derived> &policy,
 
 
 }    // namespace cuda_cub
-THRUST_END_NS
+} // end namespace thrust
 
 #include <thrust/memory.h>
 #include <thrust/unique.h>

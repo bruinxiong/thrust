@@ -47,7 +47,10 @@
 #include <thrust/distance.h>
 #include <thrust/detail/alignment.h>
 
-THRUST_BEGIN_NS
+#include <cub/util_math.cuh>
+
+namespace thrust
+{
 
 template <typename DerivedPolicy,
           typename InputIterator1,
@@ -236,12 +239,12 @@ namespace __reduce_by_key {
 
       union TempStorage
       {
-        struct
+        struct ScanStorage
         {
           typename BlockScan::TempStorage              scan;
           typename TilePrefixCallback::TempStorage     prefix;
           typename BlockDiscontinuityKeys::TempStorage discontinuity;
-        };
+        } scan_storage;
 
         typename BlockLoadKeys::TempStorage   load_keys;
         typename BlockLoadValues::TempStorage load_values;
@@ -305,7 +308,7 @@ namespace __reduce_by_key {
         size_value_pair_t identity;
         identity.value = 0;
         identity.key   = 0;
-        BlockScan(storage.scan)
+        BlockScan(storage.scan_storage.scan)
             .ExclusiveScan(scan_items, scan_items, identity, scan_op, tile_aggregate);
       }
 
@@ -317,7 +320,7 @@ namespace __reduce_by_key {
                 size_value_pair_t &tile_aggregate,
                 thrust::detail::false_type /* has_identity */)
       {
-        BlockScan(storage.scan)
+        BlockScan(storage.scan_storage.scan)
             .ExclusiveScan(scan_items, scan_items, scan_op, tile_aggregate);
       }
 
@@ -329,7 +332,7 @@ namespace __reduce_by_key {
                 TilePrefixCallback &prefix_op,
                 thrust::detail::true_type /*  has_identity */)
       {
-        BlockScan(storage.scan)
+        BlockScan(storage.scan_storage.scan)
             .ExclusiveScan(scan_items,
                            scan_items,
                            scan_op,
@@ -345,7 +348,7 @@ namespace __reduce_by_key {
                 TilePrefixCallback &prefix_op,
                 thrust::detail::false_type /* has_identity */)
       {
-        BlockScan(storage.scan)
+        BlockScan(storage.scan_storage.scan)
             .ExclusiveScan(scan_items,
                            scan_items,
                            scan_op,
@@ -578,7 +581,7 @@ namespace __reduce_by_key {
 
         // Set head segment_flags.
         // First tile sets the first flag for the first item
-        BlockDiscontinuityKeys(storage.discontinuity)
+        BlockDiscontinuityKeys(storage.scan_storage.discontinuity)
             .FlagHeads(segment_flags, keys, pred_keys, inequality_op);
 
         // Unset the flag for the first item in the first tile
@@ -692,7 +695,7 @@ namespace __reduce_by_key {
         sync_threadblock();
 
         // Set head segment_flags
-        BlockDiscontinuityKeys(storage.discontinuity)
+        BlockDiscontinuityKeys(storage.scan_storage.discontinuity)
             .FlagHeads(segment_flags,
                        keys,
                        pred_keys,
@@ -707,7 +710,7 @@ namespace __reduce_by_key {
 
         // Exclusive scan of values and segment_flags
         size_value_pair_t  tile_aggregate;
-        TilePrefixCallback prefix_op(tile_state, storage.prefix, scan_op, tile_idx);
+        TilePrefixCallback prefix_op(tile_state, storage.scan_storage.prefix, scan_op, tile_idx);
         scan_tile(scan_items,
                   tile_aggregate,
                   prefix_op,
@@ -908,7 +911,7 @@ namespace __reduce_by_key {
 
     // Number of input tiles
     int  tile_size = reduce_by_key_plan.items_per_tile;
-    Size num_tiles = (num_items + tile_size - 1) / tile_size;
+    Size num_tiles = cub::DivideAndRoundUp(num_items, tile_size);
 
     size_t vshmem_size = core::vshmem_size(reduce_by_key_plan.shared_memory_size,
                                            num_tiles);
@@ -1159,7 +1162,7 @@ reduce_by_key(execution_policy<Derived> &policy,
 
 } // namespace cuda_
 
-THRUST_END_NS
+} // end namespace thrust
 
 #include <thrust/memory.h>
 #include <thrust/reduce.h>

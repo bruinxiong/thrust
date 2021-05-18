@@ -16,6 +16,7 @@
  */
 #pragma once
 
+#include <math.h>
 #include <cmath>
 #include <thrust/detail/complex/math_private.h>
 
@@ -83,11 +84,11 @@ __host__ __device__ inline int isnan(double x){
 }
 
 __host__ __device__ inline int signbit(float x){
-  return (*((uint32_t *)&x)) & 0x80000000;
+  return ((*((uint32_t *)&x)) & 0x80000000) != 0 ? 1 : 0;
 }
 
 __host__ __device__ inline int signbit(double x){
-  return (*((uint32_t *)&x)) & 0x80000000;
+  return ((*((uint64_t *)&x)) & 0x8000000000000000) != 0ull ? 1 : 0;
 }
 
 __host__ __device__ inline int isfinite(float x){
@@ -100,34 +101,24 @@ __host__ __device__ inline int isfinite(double x){
 
 #else
 
-#  if defined(__CUDACC__) && !(defined(__CUDA__) && defined(__clang__))
-
-// sometimes the CUDA toolkit provides these these names as macros,
-// sometimes functions in the global scope
-
-#    if (CUDART_VERSION >= 6500)
+#  if defined(__CUDACC__) && !(defined(__CUDA__) && defined(__clang__)) && !defined(__NVCOMPILER_CUDA__)
+// NVCC implements at least some signature of these as functions not macros.
 using ::isinf;
 using ::isnan;
 using ::signbit;
 using ::isfinite;
-
-#    else
-// these names are macros, we don't need to define them
-
-#    endif // CUDART_VERSION
-
 #  else
-// Some compilers do not provide these in the global scope
-// they are in std:: instead
+// Some compilers do not provide these in the global scope, because they are
+// supposed to be macros. The versions in `std` are supposed to be functions.
 // Since we're not compiling with nvcc, it's safe to use the functions in std::
 using std::isinf;
 using std::isnan;
 using std::signbit;
 using std::isfinite;
 #  endif // __CUDACC__
+#endif // _MSC_VER
 
 using ::atanh;
-#endif // _MSC_VER
 
 #if defined _MSC_VER
 
@@ -149,7 +140,7 @@ __host__ __device__ inline float copysignf(float x, float y){
 
 
 
-#ifndef __CUDACC__
+#if !defined(__CUDACC__) && !defined(__NVCOMPILER_CUDA__)
 
 // Simple approximation to log1p as Visual Studio is lacking one
 inline double log1p(double x){

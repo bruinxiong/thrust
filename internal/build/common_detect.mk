@@ -1,3 +1,5 @@
+CXX_STD = c++11
+
 ifeq ($(THRUST_TEST),1)
   include $(ROOTDIR)/build/getprofile.mk
   include $(ROOTDIR)/build/config/$(PROFILE).mk

@@ -34,7 +34,8 @@
 #include <thrust/detail/minmax.h>
 #include <thrust/distance.h>
 
-THRUST_BEGIN_NS
+namespace thrust
+{
 namespace cuda_cub {
 
 // XXX forward declare to circumvent circular depedency
@@ -66,12 +67,13 @@ find(execution_policy<Derived> &policy,
      T const& value);
 
 }; // namespace cuda_cub
-THRUST_END_NS
+} // end namespace thrust
 
 #include <thrust/system/cuda/detail/reduce.h>
 #include <thrust/iterator/zip_iterator.h>
 
-THRUST_BEGIN_NS
+namespace thrust
+{
 namespace cuda_cub {
 
 namespace __find_if {
@@ -203,13 +205,15 @@ find(execution_policy<Derived> &policy,
      InputIt                    last,
      T const& value)
 {
+  using thrust::placeholders::_1;
+
   return cuda_cub::find_if(policy,
                         first,
                         last,
-                        thrust::detail::equal_to_value<T>(value));
+                        _1 == value);
 }
 
 
 } // namespace cuda_cub
-THRUST_END_NS
+} // end namespace thrust
 #endif

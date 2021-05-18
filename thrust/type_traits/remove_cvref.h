@@ -16,12 +16,19 @@
 
 #pragma once
 
+#if  THRUST_CPP_DIALECT >= 2017
+#if __has_include(<version>)
+#  include <version>
+#endif
+#endif
+
 #include <thrust/detail/config.h>
-#include <thrust/detail/type_traits.h>
+#include <type_traits>
 
-THRUST_BEGIN_NS
+namespace thrust
+{
 
-#if THRUST_CPP_DIALECT >= 2020
+#if defined(__cpp_lib_remove_cvref) && (__cpp_lib_remove_cvref >= 201711L)
 
 using std::remove_cvref;
 using std::remove_cvref_t;
@@ -31,9 +38,9 @@ using std::remove_cvref_t;
 template <typename T>
 struct remove_cvref
 {
-  typedef typename detail::remove_cv<
-    typename detail::remove_reference<T>::type
-  >::type type;
+  using type = typename std::remove_cv<
+    typename std::remove_reference<T>::type
+  >::type;
 };
 
 #if THRUST_CPP_DIALECT >= 2011
@@ -43,5 +50,5 @@ using remove_cvref_t = typename remove_cvref<T>::type;
 
 #endif // THRUST_CPP_DIALECT >= 2020
 
-THRUST_END_NS
+} // end namespace thrust
 

@@ -1,6 +1,6 @@
 #include <thrust/detail/config.h>
 
-#if THRUST_CPP_DIALECT >= 2011 && !defined(THRUST_LEGACY_GCC)
+#if THRUST_CPP_DIALECT >= 2014
 
 #include <unittest/unittest.h>
 #include <unittest/util_async.h>
@@ -101,8 +101,6 @@ struct test_future_new_stream
   void operator()()
   {
     auto f0 = thrust::device_future<T>(thrust::new_stream);
-
-    auto f0_stream = f0.stream().native_handle();
 
     ASSERT_EQUAL(true,  f0.valid_stream());
     ASSERT_EQUAL(false, f0.valid_content());
